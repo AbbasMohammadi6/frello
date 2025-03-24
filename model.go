@@ -7,31 +7,47 @@ import (
 )
 
 type model struct {
-	lists   []list.Model
-	fucosed status
+	lists        []list.Model
+	fucosed      status
+	loaded       bool
+	windowWidth  int
+	windowHeight int
 }
 
-func initialModel() model {
+var (
+	divisor      = 3
+	PaddingLeft  = 2
+	PaddingRight = 2
+	columnStyle  = lipgloss.NewStyle().PaddingRight(PaddingRight).PaddingLeft(PaddingLeft)
+)
+
+func (m *model) initialize() {
 	items := []list.Item{
-		task{"title 1"},
+		task{"the quick brown fox jumped over the lazy dog"},
 		task{"title 2"},
 		task{"title 3"},
 	}
 
-	todo := list.New(items, list.NewDefaultDelegate(), 20, 30)
-	todo.Title = "Todos"
-	todo.SetShowHelp(false)
+	columnWidth := m.windowWidth/divisor - (PaddingLeft + PaddingRight)
+	defaultList := list.New([]list.Item{}, list.NewDefaultDelegate(), columnWidth, m.windowHeight)
+	defaultList.SetShowHelp(false)
+	m.lists = []list.Model{defaultList, defaultList, defaultList}
 
-	doing := list.New(items, list.NewDefaultDelegate(), 20, 30)
-	doing.Title = "Doing"
-	doing.SetShowHelp(false)
+	m.lists[todo].SetItems(items)
+	m.lists[todo].Title = "Todos"
 
-	done := list.New(items, list.NewDefaultDelegate(), 20, 30)
-	done.Title = "Done"
-	done.SetShowHelp(false)
+	m.lists[doing].SetItems(items)
+	m.lists[doing].Title = "Doing"
 
+	m.lists[done].SetItems(items)
+	m.lists[done].Title = "Done"
+
+	m.loaded = true
+}
+
+func initialModel() model {
 	return model{
-		lists: []list.Model{todo, doing, done},
+		loaded: false,
 	}
 }
 
@@ -40,12 +56,18 @@ func (m model) Init() tea.Cmd {
 }
 
 func (m model) View() string {
-	doingStyle := lipgloss.NewStyle()
-	doneStyle := lipgloss.NewStyle()
+	if !m.loaded {
+		return "loading..."
+	}
+
+	columnWidth := m.windowWidth/divisor - (PaddingLeft + PaddingRight)
+	columnStyle.Width(columnWidth)
 
 	return lipgloss.JoinHorizontal(
 		0,
-		m.lists[todo].View(), doingStyle.Render(m.lists[doing].View()), doneStyle.Render(m.lists[done].View()),
+		columnStyle.Render(m.lists[todo].View()),
+		columnStyle.Render(m.lists[doing].View()),
+		columnStyle.Render(m.lists[done].View()),
 	)
 }
 
@@ -55,6 +77,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "q":
 			return m, tea.Quit
+		}
+
+	case tea.WindowSizeMsg:
+		{
+			m.windowWidth = msg.Width
+			m.windowHeight = msg.Height
+			m.initialize() // Does this cause race condition???
 		}
 	}
 
