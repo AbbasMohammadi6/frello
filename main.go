@@ -7,7 +7,7 @@ import (
 )
 
 type task struct {
-	title       string
+	title string
 }
 
 func (t task) FilterValue() string {
@@ -19,13 +19,22 @@ func (t task) Title() string {
 }
 
 func (t task) Description() string {
-  // TODO: there is an empty space under the title, because of this empty string, somehow remove it...
-  // ...maybe create a new delegate and use the render method of it
+	// TODO: there is an empty space under the title, because of this empty string, somehow remove it...
+	// ...maybe create a new delegate and use the render method of it
 	return ""
 }
 
+type status int
+
+const (
+	todo status = iota
+	doing
+	done
+)
+
 type model struct {
-	list list.Model
+	lists   []list.Model
+	fucosed status
 }
 
 func (m model) Init() tea.Cmd {
@@ -33,7 +42,13 @@ func (m model) Init() tea.Cmd {
 }
 
 func (m model) View() string {
-	return m.list.View()
+	doingStyle := lipgloss.NewStyle()
+	doneStyle := lipgloss.NewStyle()
+
+	return lipgloss.JoinHorizontal(
+		0,
+		m.lists[todo].View(), doingStyle.Render(m.lists[doing].View()), doneStyle.Render(m.lists[done].View()),
+	)
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -43,18 +58,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "q":
 			return m, tea.Quit
 		}
-
-	case tea.WindowSizeMsg:
-		m.list.SetSize(msg.Width, msg.Height)
 	}
 
 	var cmd tea.Cmd
-	m.list, cmd = m.list.Update(msg)
+	m.lists[todo], cmd = m.lists[todo].Update(msg)
 
 	return m, cmd
 }
-
-var docStyle = lipgloss.NewStyle().Margin(1, 2)
 
 func main() {
 	items := []list.Item{
@@ -62,9 +72,22 @@ func main() {
 		task{"title 2"},
 		task{"title 3"},
 	}
-	l := list.New(items, list.NewDefaultDelegate(), 0, 0)
-	l.Title = "Todos"
 
-	m := model{list: l}
+	todo := list.New(items, list.NewDefaultDelegate(), 20, 30)
+	todo.Title = "Todos"
+  todo.SetShowHelp(false)
+
+	doing := list.New(items, list.NewDefaultDelegate(), 20, 30)
+	doing.Title = "Doing"
+  doing.SetShowHelp(false)
+
+	done := list.New(items, list.NewDefaultDelegate(), 20, 30)
+	done.Title = "Done"
+  done.SetShowHelp(false)
+
+	m := model{
+		lists: []list.Model{todo, doing, done},
+	}
+
 	tea.NewProgram(m, tea.WithAltScreen()).Run()
 }
