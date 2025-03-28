@@ -32,15 +32,17 @@ var (
 )
 
 func (m *model) initialize() {
-	items := []list.Item{
-		task{"the quick brown fox jumped over the lazy dog"},
-		task{"title 2"},
-		task{"title 3"},
-	}
+  m.tasks = readJsonFromFs()
 
-	m.tasks[todo] = items
-	m.tasks[doing] = items
-	m.tasks[done] = items
+	// items := []list.Item{
+	// 	task{"the quick brown fox jumped over the lazy dog"},
+	// 	task{"title 2"},
+	// 	task{"title 3"},
+	// }
+	//
+	// m.tasks[todo] = items
+	// m.tasks[doing] = items
+	// m.tasks[done] = items
 
 	columnWidth := m.windowWidth/divisor - (PaddingLeft + PaddingRight)
 	defaultList := list.New([]list.Item{}, list.NewDefaultDelegate(), columnWidth, m.windowHeight)
@@ -130,6 +132,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.showModal = false
 				return m, nil // nesseccary to prevent bubbletea exiting the program
 			} else {
+				saveJsonToFs(m.tasks)
 				return m, tea.Quit
 			}
 
@@ -137,9 +140,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.showModal {
 				value := m.textarea.Value()
 				if len(value) > 0 {
-          m.tasks[todo] = append(m.tasks[todo], task{title: value})
+					m.tasks[todo] = append(m.tasks[todo], task{TaskTitle: value})
+					m.textarea.Reset()
 					m.showModal = false
-          m.textarea.Reset()
 				}
 			}
 

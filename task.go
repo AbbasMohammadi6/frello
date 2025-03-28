@@ -1,15 +1,15 @@
 package main
 
 type task struct {
-	title string
+  TaskTitle string `json:"taskTitle"`
 }
 
 func (t task) FilterValue() string {
-	return t.title
+	return t.TaskTitle
 }
 
 func (t task) Title() string {
-	return t.title
+	return t.TaskTitle
 }
 
 func (t task) Description() string {
